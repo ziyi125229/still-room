@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#0d1117"/>
+  <circle cx="256" cy="256" r="158" fill="none" stroke="#e8c9a0" stroke-width="5" opacity="0.45"/>
+  <text x="256" y="332" font-size="230" text-anchor="middle" fill="#e8c9a0"
+        font-family="PingFang SC, -apple-system, sans-serif" font-weight="300">静</text>
+</svg>

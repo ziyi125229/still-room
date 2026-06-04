@@ -1,0 +1,14 @@
+{
+  "name": "静室 · 沉浸自习室",
+  "short_name": "静室",
+  "description": "可切换场景的沉浸式自习室，进入场景自动播放对应自然白噪音，内置专注工具。",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#05070a",
+  "theme_color": "#0d1117",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
