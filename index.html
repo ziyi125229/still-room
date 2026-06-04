@@ -228,7 +228,7 @@
       <h1>静室</h1>
       <p class="gate-tag">找一处场景，安放此刻的专注</p>
       <button id="enter">进入</button>
-      <p class="gate-feat">五种场景 · 自然白噪音 · 专注工具</p>
+      <p class="gate-feat">六种场景 · 自然白噪音 · 专注工具</p>
     </div>
   </div>
 
@@ -306,6 +306,17 @@
     </div>
   </div>
 
+  <div class="panel" id="panel-bg">
+    <h3>自定义背景</h3>
+    <p class="hint" style="margin-top:0">为当前场景「<span id="bgScene"></span>」设置背景图</p>
+    <input id="bgFile" type="file" accept="image/*" hidden>
+    <div class="row">
+      <button class="pill primary" id="bgPick">选择图片…</button>
+      <button class="pill" id="bgClear">恢复默认</button>
+    </div>
+    <p class="hint">仅保存在本机浏览器、不会上传；自动切到照片模式显示。建议用横向大图。</p>
+  </div>
+
   <!-- dock -->
   <div id="dock">
     <div class="group"><button class="tbtn" id="modeBtn" title="切换 真实照片 / 手绘插画">🎨</button></div>
@@ -318,6 +329,7 @@
       <button class="tbtn" data-panel="todo" title="待办">✓</button>
       <button class="tbtn" data-panel="breath" title="呼吸">🫁</button>
       <button class="tbtn" data-panel="mix" title="声音">♪</button>
+      <button class="tbtn" data-panel="bg" title="自定义背景">📷</button>
     </div>
     <div class="sep"></div>
     <div class="group"><button class="tbtn" id="fsBtn" title="全屏 (F)">⛶</button></div>
@@ -665,6 +677,7 @@ const store = {
 let current = store.get('scene','forest');
 let visualMode = store.get('visualMode','art');   // 'art' 手绘插画 | 'photo' 真实照片
 let followScene = store.get('followScene', true); // 声音是否跟随场景切换
+const customBg = store.get('customBg', {});        // 每个场景的自定义背景图(dataURL)
 let immersiveOn = false;
 
 /* ---- build scene buttons ---- */
@@ -686,7 +699,7 @@ function setScene(id, commit=true){
   const outgoing = topShown ? bgTop : bgBot;
   if(visualMode==='photo'){
     incoming.innerHTML='';
-    incoming.style.backgroundImage=`url("img/${sc.id}.jpg")`;
+    incoming.style.backgroundImage=`url("${customBg[sc.id] || 'img/'+sc.id+'.jpg'}")`;
     incoming.style.backgroundSize='cover';
     incoming.style.backgroundPosition='center';
   } else {
@@ -703,6 +716,30 @@ function setScene(id, commit=true){
   // particles + sound
   initParticles(sc.type);
   if(audioStarted && followScene){ Audio_.solo(sc.type); if(window._refreshTracks) _refreshTracks(); }
+  if(window._updateBgPanel) _updateBgPanel();
+}
+
+// 自定义背景：读取本地图片→压缩→存 localStorage→作为当前场景的照片背景
+function loadCustomBg(file){
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{
+      const max=1600, k=Math.min(1, max/img.width);
+      const w=Math.round(img.width*k), h=Math.round(img.height*k);
+      const cvs=document.createElement('canvas'); cvs.width=w; cvs.height=h;
+      cvs.getContext('2d').drawImage(img,0,0,w,h);
+      let data; try{ data=cvs.toDataURL('image/jpeg',0.8); }catch(e){ data=ev.target.result; }
+      customBg[current]=data;
+      try{ localStorage.setItem('sr_customBg', JSON.stringify(customBg)); }
+      catch(e){ delete customBg[current]; alert('保存失败：图片太大或本地空间不足，换一张小一点的横图试试'); return; }
+      visualMode='photo'; store.set('visualMode','photo'); refreshModeBtn();
+      setScene(current);
+    };
+    img.onerror=()=>alert('图片无法读取，换一张试试');
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);
 }
 
 /* ============================================================
@@ -1067,6 +1104,7 @@ document.querySelectorAll('.tbtn').forEach(btn=>{
     panel.classList.add('open');
     applyPos(panel,id);
     btn.classList.add('on');openPanel=id;
+    if(id==='bg' && window._updateBgPanel) _updateBgPanel();
   };
 });
 function closePanels(){
@@ -1282,6 +1320,23 @@ const Pomo=(function(){
     mode=b.dataset.mode;document.querySelectorAll('#breathModes button').forEach(x=>x.classList.toggle('sel',x===b));
     if(running){stop();start();}
   });
+})();
+
+/* ============================================================
+   自定义背景
+============================================================ */
+(function(){
+  const fileInput=$('#bgFile'), nameEl=$('#bgScene'), clearBtn=$('#bgClear');
+  function update(){
+    const sc=SCENES.find(s=>s.id===current);
+    nameEl.textContent=sc?sc.name:'';
+    clearBtn.style.display=customBg[current]?'inline-block':'none';
+  }
+  window._updateBgPanel=update;
+  $('#bgPick').onclick=()=>fileInput.click();
+  fileInput.onchange=e=>{ const f=e.target.files[0]; if(f) loadCustomBg(f); fileInput.value=''; };
+  clearBtn.onclick=()=>{ delete customBg[current]; store.set('customBg',customBg); setScene(current); update(); };
+  update();
 })();
 
 /* ============================================================
