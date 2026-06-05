@@ -1,5 +1,5 @@
 // 静室 service worker —— 缓存外壳与场景图片，部署后可离线打开
-const CACHE = 'jingshi-v4';
+const CACHE = 'jingshi-v5';
 const ASSETS = [
   './', 'index.html', 'manifest.webmanifest', 'icon.svg',
   'img/rain.jpg', 'img/forest.jpg', 'img/cafe.jpg', 'img/sea.jpg', 'img/fire.jpg', 'img/sakura.jpg'
