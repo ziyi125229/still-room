@@ -340,22 +340,22 @@
    SCENES
 ============================================================ */
 const SCENES = [
-  { id:'forest',name:'晨光森林', icon:'🌲',
+  { id:'forest',name:'晨光森林', icon:'🌲', sky:'#2c5349',
     bg:'radial-gradient(ellipse at 30% 0%, #4a6b48 0%, #25402c 45%, #10211a 100%)',
     rays:true, type:'forest' },
-  { id:'sakura',name:'樱花庭院', icon:'🌸',
+  { id:'sakura',name:'樱花庭院', icon:'🌸', sky:'#a9d4e6',
     bg:'linear-gradient(180deg, #aed6e6 0%, #dfeaf0 55%, #ffd8e2 100%)',
     rays:false, type:'sakura' },
-  { id:'cafe',  name:'午后咖啡馆', icon:'☕',
+  { id:'cafe',  name:'午后咖啡馆', icon:'☕', sky:'#c8a468',
     bg:'radial-gradient(ellipse at 50% 30%, #3a2a1c 0%, #241812 45%, #120b08 100%)',
     rays:false, type:'cafe' },
-  { id:'sea',   name:'海边日落', icon:'🌊',
+  { id:'sea',   name:'海边日落', icon:'🌊', sky:'#1d2a52',
     bg:'linear-gradient(180deg, #1a2540 0%, #4a3b5e 35%, #b5623e 70%, #e89a5a 100%)',
     rays:false, type:'sea' },
-  { id:'rain',  name:'雨夜书房', icon:'🌧',
+  { id:'rain',  name:'雨夜书房', icon:'🌧', sky:'#2c2119',
     bg:'radial-gradient(ellipse at 70% 10%, #2b3a4a 0%, #161d27 45%, #0a0e14 100%)',
     rays:false, type:'rain' },
-  { id:'fire',  name:'壁炉雪夜', icon:'🔥',
+  { id:'fire',  name:'壁炉雪夜', icon:'🔥', sky:'#2e1e14',
     bg:'radial-gradient(ellipse at 50% 95%, #4a2a18 0%, #1c1410 45%, #0a0808 100%)',
     rays:false, type:'fire' },
 ];
@@ -691,6 +691,10 @@ SCENES.forEach(s=>{
 
 /* ---- background crossfade ---- */
 let bgTop = $('#bgA'), bgBot = $('#bgB'), topShown=false;
+// 竖屏：整幅按宽度完整显示并底对齐；横屏：铺满裁切
+function parFor(){ return innerHeight>innerWidth ? 'xMidYMax meet' : 'xMidYMid slice'; }
+// 把天空色压暗一档，做竖屏留白处的天空渐变（越高越深）
+function darken(hex,f){ const n=parseInt((hex||'#0a0e14').slice(1),16); let r=((n>>16)&255)*f|0,g=((n>>8)&255)*f|0,b=(n&255)*f|0; return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1); }
 function setScene(id, commit=true){
   const sc = SCENES.find(s=>s.id===id); if(!sc) return;
   if(commit){ current = id; store.set('scene', id); }
@@ -703,9 +707,12 @@ function setScene(id, commit=true){
     incoming.style.backgroundSize='cover';
     incoming.style.backgroundPosition='center';
   } else {
-    incoming.style.backgroundImage='none';
     incoming.innerHTML = SCENE_SVG[sc.type] || '';
+    const svg=incoming.querySelector('svg'); if(svg) svg.setAttribute('preserveAspectRatio', parFor());
+    // 竖屏底对齐后，上方留白用"天空渐变"填充（近地平线浅、越高越深），无缝接住插画顶端
+    incoming.style.backgroundImage = `linear-gradient(0deg, ${sc.sky||'#0a0e14'}, ${darken(sc.sky,.72)})`;
   }
+  incoming.style.backgroundColor = sc.sky || '#0a0e14';
   incoming.style.opacity = 1; outgoing.style.opacity = 0;
   topShown = !topShown;
   // overlays（光束仅在插画版的森林用）
@@ -757,6 +764,8 @@ function resize(){
   DPR=Math.min(window.devicePixelRatio||1,2);
   W=cv.width=innerWidth*DPR; H=cv.height=innerHeight*DPR;
   cv.style.width=innerWidth+'px';cv.style.height=innerHeight+'px';
+  const par=parFor();
+  document.querySelectorAll('.bg svg').forEach(s=>s.setAttribute('preserveAspectRatio',par));
 }
 addEventListener('resize',resize); resize();
 
