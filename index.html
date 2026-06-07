@@ -118,7 +118,7 @@
 
   /* ---- panels ---- */
   .panel{position:fixed;bottom:92px;left:50%;transform:translateX(-50%) translateY(12px);
-    z-index:40;width:330px;padding:24px;border-radius:22px;
+    z-index:40;width:370px;padding:24px;border-radius:22px;
     background:var(--glass-strong);backdrop-filter:blur(26px);-webkit-backdrop-filter:blur(26px);
     border:1px solid var(--stroke);box-shadow:0 18px 50px rgba(0,0,0,.5);
     opacity:0;pointer-events:none;transition:opacity .35s ease, transform .35s ease}
@@ -167,7 +167,9 @@
   #todoList li.done{opacity:.45}
   #todoList li.done .txt{text-decoration:line-through}
   #todoList li.done .box{background:var(--accent);border-color:var(--accent);color:#1a1206}
-  #todoList li .txt{flex:1}
+  #todoList li .txt{flex:1;cursor:text;min-width:0;word-break:break-all}
+  #todoList li input.edit{flex:1;min-width:0;background:rgba(255,255,255,.08);border:1px solid var(--stroke);
+    border-radius:6px;color:var(--fg);font-size:14px;padding:3px 7px;outline:none;font-family:inherit}
   #todoList li .del{opacity:0;color:var(--fg-dim);font-size:16px;transition:opacity .2s}
   #todoList li:hover .del{opacity:.6}
   #todoList li .focus{flex-shrink:0;color:var(--fg-dim);font-size:15px;cursor:pointer;transition:color .2s}
@@ -175,6 +177,7 @@
   #todoList li.active .focus{color:var(--accent)}
   #todoList li .poms{flex-shrink:0;font-size:11px;color:var(--accent);opacity:.9;letter-spacing:-.02em}
   .hint{text-align:center;color:var(--fg-dim);font-size:11px;letter-spacing:.1em;margin-top:14px}
+  #todoHint{white-space:nowrap;font-size:10.5px;letter-spacing:.01em}
 
   /* mixer */
   .slider-row{margin-bottom:20px}
@@ -1333,16 +1336,28 @@ const Pomo=(function(){
     todos.forEach((t,i)=>{
       const li=document.createElement('li');if(t.done)li.classList.add('done');if(t.focus&&!t.done)li.classList.add('active');
       li.innerHTML=`<span class="focus" data-f>${t.focus&&!t.done?'◉':'◎'}</span><span class="box">${t.done?'✓':''}</span><span class="txt"></span><span class="poms">${t.poms?'🍅×'+t.poms:''}</span><span class="del">×</span>`;
-      li.querySelector('.txt').textContent=t.text;
+      const txtEl=li.querySelector('.txt');
+      txtEl.textContent=t.text; txtEl.title='点按可编辑';
+      txtEl.onclick=e=>{e.stopPropagation();startEdit(li,t);};
       li.querySelector('.focus').onclick=e=>{e.stopPropagation();const was=t.focus;todos.forEach(x=>x.focus=false);t.focus=!was;save();render();if(Pomo&&Pomo.renderMeta)Pomo.renderMeta();};
       li.querySelector('.box').onclick=e=>{e.stopPropagation();t.done=!t.done;save();render();if(Pomo&&Pomo.renderMeta)Pomo.renderMeta();};
-      li.onclick=()=>{t.done=!t.done;save();render();};
       li.querySelector('.del').onclick=e=>{e.stopPropagation();todos.splice(i,1);save();render();if(Pomo&&Pomo.renderMeta)Pomo.renderMeta();};
       list.appendChild(li);
     });
-    $('#todoHint').textContent=todos.length>=5?'专注当下 · 完成再添新的':'点 ◎ 标记"正在做"，番茄会记在它头上';
+    $('#todoHint').textContent=todos.length>=5?'专注当下 · 完成再添新的':'点文字可编辑 · 点方框打勾完成 · 点 ◎ 标"正在做"';
   }
   function save(){store.set('todos',todos);}
+  // 点文字进入编辑：回车/失焦保存，Esc 取消
+  function startEdit(li,t){
+    const txtEl=li.querySelector('.txt'); if(!txtEl) return;
+    const inp=document.createElement('input');
+    inp.type='text'; inp.className='edit'; inp.value=t.text; inp.maxLength=40;
+    txtEl.replaceWith(inp); inp.focus(); inp.setSelectionRange(inp.value.length,inp.value.length);
+    let done=false;
+    const commit=ok=>{ if(done)return; done=true; const v=inp.value.trim(); if(ok&&v) t.text=v; save(); render(); if(Pomo&&Pomo.renderMeta)Pomo.renderMeta(); };
+    inp.addEventListener('keydown',e=>{ e.stopPropagation(); if(e.key==='Enter') commit(true); else if(e.key==='Escape') commit(false); });
+    inp.addEventListener('blur',()=>commit(true));
+  }
   input.addEventListener('keydown',e=>{
     if(e.key==='Enter'&&input.value.trim()&&todos.length<8){
       todos.push({text:input.value.trim(),done:false,poms:0,focus:false});input.value='';save();render();}
